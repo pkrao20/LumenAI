@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { UsersModule } from './users/users.module';
 import { IngestionModule } from './ingestion/ingestion.module';
 import { ConversationModule } from './conversation/conversation.module';
+import { LlmModule } from './llm/llm.module';
 
 @Module({
   imports: [
@@ -31,9 +33,11 @@ import { ConversationModule } from './conversation/conversation.module';
       synchronize: true,
       //TODO: set synchronise to false while pushing it
     }),
+    ConfigModule.forRoot({ isGlobal: true }),
     UsersModule,
     IngestionModule,
     ConversationModule,
+    LlmModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

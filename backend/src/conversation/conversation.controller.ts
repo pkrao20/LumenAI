@@ -1,10 +1,11 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Res, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtPayload } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CreateConversationDto } from './dtos/create-conversation.dto';
+import { SendMessageDto } from './dtos/send-message.dto';
 import { ConversationService } from './conversation.service';
 
 @ApiBearerAuth()
@@ -23,6 +24,17 @@ export class ConversationController {
   @UseGuards(JwtAuthGuard)
   getAllConversation(@CurrentUser() user: JwtPayload) {
     return this.conversationService.getAllConversation(user.sub);
+  }
+
+  @Post(':id/message')
+  @UseGuards(JwtAuthGuard)
+  sendMessage(
+    @Param('id') id: string,
+    @Body() dto: SendMessageDto,
+    @CurrentUser() user: JwtPayload,
+    @Res() res: any,
+  ) {
+    return this.conversationService.streamMessageToResponse(id, dto.message, user.sub, res);
   }
 
   @Patch(':id/pause')
