@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import TopNav from '@/components/common/top-nav';
 import LatencyChart from '@/components/dashboard/latency-chart';
 import TokensChart from '@/components/dashboard/tokens-chart';
@@ -51,6 +51,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshedAt, setRefreshedAt] = useState<Date>(new Date());
+  const [selectedLog, setSelectedLog] = useState<InferenceLog | null>(null);
 
   const load = useCallback(async (r: Range, page: number) => {
     setLoading(true);
@@ -87,6 +88,7 @@ export default function DashboardPage() {
   const totalPages = Math.ceil(logTotal / 20);
 
   return (
+    <>
     <div className="app-root">
       <TopNav />
 
@@ -246,12 +248,13 @@ export default function DashboardPage() {
                       <th>Tokens out</th>
                       <th>Latency</th>
                       <th>Status</th>
+                      <th>Preview</th>
                       <th>When</th>
                     </tr>
                   </thead>
                   <tbody>
                     {logs.map((log) => (
-                      <tr key={log.id}>
+                      <tr key={log.id} className={log.inputPreview || log.outputPreview ? 'has-preview' : ''} onClick={() => (log.inputPreview || log.outputPreview) && setSelectedLog(log)}>
                         <td className="mono td-id">{log.id.slice(0, 8)}</td>
                         <td className="mono">{log.model}</td>
                         <td className="mono">{fmtNum(log.promptTokens)}</td>
@@ -268,6 +271,28 @@ export default function DashboardPage() {
                           <span className={'status-pill ' + log.status}>
                             {log.status}
                           </span>
+                        </td>
+                        <td className="td-preview">
+                          {log.inputPreview || log.outputPreview ? (
+                            <div className="preview-snippets">
+                              {log.inputPreview && (
+                                <span className="preview-line preview-in">
+                                  {/* <span className="preview-label">In</span> */}
+                                  {log.inputPreview.length > 48 ? log.inputPreview.slice(0, 30) + '…' : log.inputPreview}
+                                </span>
+                              )}
+
+                              {log.outputPreview && (
+                                <span className="preview-line preview-out"> -
+                                  {/* <span className="preview-label"> Out </span> */}
+                                  {log.outputPreview.length > 48 ? log.outputPreview.slice(0, 30) + '…' : log.outputPreview}
+                                </span>
+                              )}
+
+                            </div>
+                          ) : (
+                            <span className="td-empty">—</span>
+                          )}
                         </td>
                         <td className="mono td-when">{relTime(log.createdAt)}</td>
                       </tr>
@@ -301,6 +326,52 @@ export default function DashboardPage() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {selectedLog && (
+      <PreviewModal log={selectedLog} onClose={() => setSelectedLog(null)} />
+    )}
+    </>
+  );
+}
+
+function PreviewModal({ log, onClose }: { log: InferenceLog; onClose: () => void }) {
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  return (
+    <div
+      className="preview-modal-overlay"
+      ref={overlayRef}
+      onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
+    >
+      <div className="preview-modal">
+        <div className="preview-modal-header">
+          <div className="preview-modal-meta">
+            <span className="mono td-id">{log.id.slice(0, 8)}</span>
+            <span className="mono" style={{ color: 'var(--ink-3)' }}>{log.model}</span>
+            <span className={'status-pill ' + log.status}>{log.status}</span>
+          </div>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Close">
+            ✕
+          </button>
+        </div>
+        <div className="preview-modal-body">
+          <div className="preview-section">
+            <div className="preview-section-label">Input</div>
+            <pre className="preview-content">{log.inputPreview ?? '—'}</pre>
+          </div>
+          <div className="preview-section">
+            <div className="preview-section-label">Output</div>
+            <pre className="preview-content">{log.outputPreview ?? '—'}</pre>
           </div>
         </div>
       </div>

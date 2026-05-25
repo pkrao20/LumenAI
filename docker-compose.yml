@@ -53,6 +53,7 @@ services:
       LLM_PROVIDER: ollama
       OLLAMA_BASE_URL: http://ollama:11434
       OLLAMA_MODEL: qwen2.5:3b
+      # OLLAMA_FALLBACK_MODELS: llama3.2:3b,mistral:7b  # uncomment to enable fallback chain
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USERNAME: postgres

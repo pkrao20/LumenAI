@@ -33,6 +33,8 @@ export interface InferenceLog {
   totalTokens: number;
   latencyMs: number;
   status: 'completed' | 'failed' | 'cancelled';
+  inputPreview: string | null;
+  outputPreview: string | null;
   createdAt: string;
 }
 
