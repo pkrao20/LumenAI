@@ -10,6 +10,7 @@ import type { ChatMessage } from '../llm/interfaces/llm-provider.interface';
 @Injectable()
 export class ConversationService {
   private readonly logger = new Logger(ConversationService.name);
+  private readonly activeStreams = new Map<string, AbortController>();
 
   constructor(
     @InjectRepository(Conversation)
@@ -18,6 +19,25 @@ export class ConversationService {
     private readonly messageRepository: Repository<Message>,
     private readonly llmService: LlmService,
   ) {}
+
+  async getMessages(
+    conversationId: string,
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<{ data: Message[]; total: number; page: number; limit: number; totalPages: number }> {
+    const conversation = await this.findConversationById(conversationId, userId);
+    if (!conversation) throw new NotFoundException('Conversation not found');
+
+    const [data, total] = await this.messageRepository.findAndCount({
+      where: { conversationId },
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return { data: data.reverse(), total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
 
   getAllConversation(userId: string): Promise<Conversation[]> {
     this.logger.log(`Fetching all conversations for user ${userId}`);
@@ -39,6 +59,8 @@ export class ConversationService {
     const conversation = await this.findConversationById(id, userId);
     if (!conversation) throw new NotFoundException('Conversation not found');
 
+    this.activeStreams.get(id)?.abort();
+
     conversation.status = ConversationStatus.PAUSED;
     this.logger.log(`Paused conversation ${id} for user ${userId}`);
     return this.updateConversation(conversation);
@@ -54,24 +76,32 @@ export class ConversationService {
   }
 
   async streamMessageToResponse(conversationId: string, text: string, userId: string, res: any): Promise<void> {
-    res.setHeader('Content-Type', 'text/event-stream');
+    const controller = new AbortController();
+    this.activeStreams.set(conversationId, controller);
+
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders();
 
+    // client closes connection (e.g. browser tab closed) → abort the stream
+    res.on('close', () => controller.abort());
+
     try {
-      for await (const chunk of this.streamMessageChunks(conversationId, text, userId)) {
-        res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`);
+      for await (const chunk of this.streamMessageChunks(conversationId, text, userId, controller.signal)) {
+        res.write(chunk);
       }
-      res.write('data: [DONE]\n\n');
     } catch (err) {
-      res.write(`data: ${JSON.stringify({ error: (err as Error).message })}\n\n`);
+      this.logger.error('Streaming error', err);
     } finally {
+      this.activeStreams.delete(conversationId);
       res.end();
     }
   }
 
-  async *streamMessageChunks(conversationId: string, text: string, userId: string): AsyncGenerator<string> {
+  async *streamMessageChunks(conversationId: string, text: string, userId: string, signal?: AbortSignal): AsyncGenerator<string> {
     const conversation = await this.findConversationById(conversationId, userId);
     if (!conversation) throw new NotFoundException('Conversation not found');
 
@@ -80,13 +110,18 @@ export class ConversationService {
     const assistantMsg = await this.createStreamingAssistantMessage(conversationId);
 
     let fullContent = '';
+    let interrupted = false;
     try {
       for await (const chunk of this.llmService.stream(chatMessages)) {
+        if (signal?.aborted) {
+          interrupted = true;
+          break;
+        }
         fullContent += chunk;
         yield chunk;
       }
       assistantMsg.content = fullContent;
-      assistantMsg.status = MessageStatus.COMPLETED;
+      assistantMsg.status = interrupted ? MessageStatus.INTERRUPTED : MessageStatus.COMPLETED;
     } catch (err) {
       assistantMsg.content = fullContent;
       assistantMsg.status = MessageStatus.FAILED;
