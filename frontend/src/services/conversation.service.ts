@@ -52,3 +52,17 @@ export async function signIn(email: string, password: string): Promise<void> {
     throw new Error(body.error ?? 'Sign in failed');
   }
 }
+
+export async function signUp(name: string, email: string, password: string): Promise<void> {
+  const res = await fetch(`${BASE}/users/signup`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, password }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error ?? 'Sign up failed');
+  }
+}

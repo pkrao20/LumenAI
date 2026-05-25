@@ -205,8 +205,10 @@ export class ConversationService {
   private async buildChatHistory(conversationId: string): Promise<ChatMessage[]> {
     const history = await this.messageRepository.find({
       where: { conversationId },
-      order: { createdAt: 'ASC' },
+      order: { createdAt: 'DESC' },
+      take: 6,
     });
+    history.reverse();
     return history.map((m) => ({
       role: m.role === MessageRole.USER ? 'user' : 'assistant',
       content: m.content,

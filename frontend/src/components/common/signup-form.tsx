@@ -5,9 +5,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useChatContext } from '@/context/chat.context';
 
-export default function LoginForm() {
-  const { signIn } = useChatContext();
+export default function SignupForm() {
+  const { signUp } = useChatContext();
   const router = useRouter();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -18,10 +19,10 @@ export default function LoginForm() {
     setError(null);
     setLoading(true);
     try {
-      await signIn(email, password);
+      await signUp(name, email, password);
       router.replace('/');
     } catch (err: unknown) {
-      setError((err as Error).message ?? 'Sign in failed');
+      setError((err as Error).message ?? 'Sign up failed');
     } finally {
       setLoading(false);
     }
@@ -35,11 +36,25 @@ export default function LoginForm() {
           <span>LumenAI</span>
         </div>
         <h1>
-          Welcome <em>back</em>.
+          Create an <em>account</em>.
         </h1>
-        <p className="sub">Sign in to your workspace to continue.</p>
+        <p className="sub">Sign up to start your workspace.</p>
 
         <form onSubmit={handleSubmit} className="login-form">
+          <div className="field">
+            <label htmlFor="name">Name</label>
+            <input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              minLength={2}
+              autoComplete="name"
+              placeholder="Your name"
+              className="input"
+            />
+          </div>
           <div className="field">
             <label htmlFor="email">Email</label>
             <input
@@ -61,7 +76,8 @@ export default function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              autoComplete="current-password"
+              minLength={8}
+              autoComplete="new-password"
               placeholder="••••••••"
               className="input"
             />
@@ -70,14 +86,14 @@ export default function LoginForm() {
           {error && <p className="form-err">{error}</p>}
 
           <button type="submit" disabled={loading} className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '11px 16px' }}>
-            {loading ? 'Signing in…' : 'Sign in →'}
+            {loading ? 'Creating account…' : 'Create account →'}
           </button>
         </form>
 
         <p style={{ marginTop: '20px', fontSize: '13px', color: 'var(--ink-3)', textAlign: 'center' }}>
-          Don&apos;t have an account?{' '}
-          <Link href="/signup" style={{ color: 'var(--accent-ink)', fontWeight: 500 }}>
-            Sign up
+          Already have an account?{' '}
+          <Link href="/login" style={{ color: 'var(--accent-ink)', fontWeight: 500 }}>
+            Sign in
           </Link>
         </p>
       </div>

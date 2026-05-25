@@ -22,13 +22,13 @@ import { LlmModule } from './llm/llm.module';
     TypeOrmModule.forRoot({
       type: 'postgres',
 
-      host: 'localhost',
-      port: 5432,
+      host: process.env.DB_HOST ?? 'localhost',
+      port: parseInt(process.env.DB_PORT ?? '5432'),
 
-      username: 'postgres',
-      password: 'postgres',
+      username: process.env.DB_USERNAME ?? 'postgres',
+      password: process.env.DB_PASSWORD ?? 'postgres',
 
-      database: 'llm_ingestion',
+      database: process.env.DB_DATABASE ?? 'llm_ingestion',
 
       autoLoadEntities: true,
 

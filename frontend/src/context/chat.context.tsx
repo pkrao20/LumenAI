@@ -16,6 +16,7 @@ import {
   getMessages,
   pauseConversation as apiPause,
   signIn as apiSignIn,
+  signUp as apiSignUp,
 } from '@/services/conversation.service';
 import { streamMessage, streamResume } from '@/services/chat.service';
 import type { Conversation } from '@/types/conversation';
@@ -31,6 +32,7 @@ interface ChatContextValue {
   pauseConversation: (id: string) => Promise<void>;
   resumeConversation: (id: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
+  signUp: (name: string, email: string, password: string) => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -224,6 +226,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     [loadConversations],
   );
 
+  const signUp = useCallback(
+    async (name: string, email: string, password: string) => {
+      await apiSignUp(name, email, password);
+      dispatch({ type: 'SET_AUTH', payload: true });
+      await loadConversations();
+    },
+    [loadConversations],
+  );
+
   return (
     <ChatContext.Provider
       value={{
@@ -236,6 +247,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         pauseConversation,
         resumeConversation,
         signIn,
+        signUp,
       }}
     >
       {children}
