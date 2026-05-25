@@ -6,8 +6,6 @@ import {
 } from 'typeorm';
 
 export enum InferenceLogStatus {
-  PENDING = 'PENDING',
-  RUNNING = 'RUNNING',
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
 }
@@ -20,17 +18,14 @@ export class InferenceLog {
   @Column({ name: 'request_id', type: 'varchar' })
   requestId: string;
 
-  @Column({ name: 'conversation_id', type: 'uuid' })
-  conversationId: string;
-
-  @Column({ name: 'message_id', type: 'uuid' })
-  messageId: string;
-
   @Column({ name: 'provider', length: 50 })
   provider: string;
 
   @Column({ name: 'model', length: 100 })
   model: string;
+
+  @Column({ name: 'status', type: 'enum', enum: InferenceLogStatus, nullable: true })
+  status: InferenceLogStatus | null;
 
   @Column({ name: 'latency_ms', type: 'int', nullable: true })
   latencyMs: number | null;
@@ -50,20 +45,17 @@ export class InferenceLog {
   @Column({ name: 'output_preview', type: 'text', nullable: true })
   outputPreview: string | null;
 
-  @Column({ name: 'status', type: 'enum', enum: InferenceLogStatus, nullable: true })
-  status: InferenceLogStatus | null;
-
   @Column({ name: 'error_message', type: 'text', nullable: true })
   errorMessage: string | null;
+
+  @Column({ name: 'metadata', type: 'jsonb', nullable: true })
+  metadata: Record<string, unknown> | null;
 
   @Column({ name: 'started_at', type: 'timestamp', nullable: true })
   startedAt: Date | null;
 
   @Column({ name: 'completed_at', type: 'timestamp', nullable: true })
   completedAt: Date | null;
-
-  @Column({ name: 'raw_response', type: 'jsonb', nullable: true })
-  rawResponse: Record<string, unknown> | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

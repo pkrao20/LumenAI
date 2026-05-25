@@ -1,35 +1,49 @@
 import type { Message } from '@/types/message';
 
+function fmtTime(ts: number): string {
+  if (!ts) return '';
+  const d = new Date(ts);
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
 export default function MessageItem({ message }: { message: Message }) {
   const isUser = message.role === 'user';
+  const hasContent = Boolean(message.content);
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-          isUser
-            ? 'rounded-br-sm bg-blue-600 text-white'
-            : 'rounded-bl-sm bg-zinc-100 text-zinc-900'
-        }`}
-      >
-        {message.content ? (
-          <>
-            <span className="whitespace-pre-wrap">{message.content}</span>
-            {message.isStreaming && (
-              <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse align-middle bg-current opacity-75" />
-            )}
-          </>
-        ) : message.isStreaming ? (
-          <span className="flex h-5 items-center gap-1">
-            {[0, 1, 2].map((i) => (
-              <span
-                key={i}
-                className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400"
-                style={{ animationDelay: `${i * 150}ms` }}
-              />
-            ))}
-          </span>
-        ) : null}
+    <div className={'msg ' + (isUser ? 'msg-user' : 'msg-assistant')}>
+      <div className="msg-gutter">
+        {isUser ? (
+          <div className="avatar sm" aria-hidden>a</div>
+        ) : (
+          <span className="brand-mark" style={{ width: 22, height: 22 }} aria-hidden />
+        )}
+      </div>
+      <div className="msg-bubble">
+        <div className="msg-meta">
+          <span className="mono">{isUser ? 'you' : 'assistant'}</span>
+          {message.timestamp ? (
+            <>
+              <span style={{ color: 'var(--ink-4)' }}>·</span>
+              <span>{fmtTime(message.timestamp)}</span>
+            </>
+          ) : null}
+          {message.isStreaming && <span className="streaming-dot" aria-hidden />}
+        </div>
+        <div className="msg-content">
+          {hasContent ? (
+            <>
+              {message.content}
+              {message.isStreaming && <span className="caret" aria-hidden />}
+            </>
+          ) : message.isStreaming ? (
+            <span className="typing-dots" aria-label="assistant is typing">
+              <span />
+              <span />
+              <span />
+            </span>
+          ) : null}
+        </div>
       </div>
     </div>
   );

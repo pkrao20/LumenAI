@@ -25,7 +25,7 @@ interface ChatContextValue {
   state: ChatState;
   loadConversations: () => Promise<void>;
   selectConversation: (conversation: Conversation) => Promise<void>;
-  startNewConversation: (title: string) => Promise<void>;
+  startNewConversation: (title: string) => Promise<string>;
   sendMessage: (content: string) => Promise<void>;
   cancelStreaming: () => void;
   pauseConversation: (id: string) => Promise<void>;
@@ -86,7 +86,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const startNewConversation = useCallback(async (title: string) => {
+  const startNewConversation = useCallback(async (title: string): Promise<string> => {
     const created = await apiCreate(title);
     const conversation: Conversation = {
       id: created.id,
@@ -101,6 +101,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'ADD_CONVERSATION', payload: conversation });
     dispatch({ type: 'SET_ACTIVE_CONVERSATION', payload: created.id });
     dispatch({ type: 'SET_MESSAGES', payload: { conversationId: created.id, messages: [] } });
+    return created.id;
   }, []);
 
   const sendMessage = useCallback(async (content: string) => {

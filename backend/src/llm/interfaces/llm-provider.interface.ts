@@ -3,9 +3,17 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface InferenceMetadata {
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  extras?: Record<string, unknown>;
+}
+
 export interface CompletionOptions {
   temperature?: number;
   maxTokens?: number;
+  onMetadata?: (meta: InferenceMetadata) => void;
 }
 
 export interface ILLMProvider {

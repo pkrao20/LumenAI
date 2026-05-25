@@ -29,7 +29,7 @@ export default function MessageInput() {
     setText(e.target.value);
     const el = e.target;
     el.style.height = 'auto';
-    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -39,8 +39,16 @@ export default function MessageInput() {
     }
   };
 
+  const placeholder = isPaused
+    ? 'Conversation paused — resume to continue'
+    : state.isStreaming
+      ? 'Generating…'
+      : !state.activeConversationId
+        ? 'Select a conversation to begin'
+        : 'Send a message — Enter to send, Shift+Enter for newline';
+
   return (
-    <div className="flex items-end gap-3">
+    <div className="chat-input">
       <textarea
         ref={textareaRef}
         rows={1}
@@ -48,23 +56,21 @@ export default function MessageInput() {
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         disabled={disabled}
-        placeholder={
-          isPaused
-            ? 'Conversation paused — resume to continue'
-            : state.isStreaming
-              ? 'Waiting for response…'
-              : 'Message… (Enter to send, Shift+Enter for newline)'
-        }
-        className="flex-1 resize-none rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm leading-relaxed text-zinc-900 placeholder-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-50"
-        style={{ maxHeight: '120px' }}
+        placeholder={placeholder}
       />
-      <button
-        onClick={handleSend}
-        disabled={disabled || !text.trim()}
-        className="flex-shrink-0 rounded-xl bg-blue-600 px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        Send
-      </button>
+      <div className="chat-input-bar">
+        <div className="chat-input-meta">
+          {text.length} chars · ~{Math.ceil(text.length / 4)} tokens
+        </div>
+        <button
+          type="button"
+          onClick={handleSend}
+          disabled={disabled || !text.trim()}
+          className="btn btn-primary btn-sm"
+        >
+          Send →
+        </button>
+      </div>
     </div>
   );
 }

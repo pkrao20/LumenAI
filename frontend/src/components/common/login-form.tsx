@@ -27,43 +27,49 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="flex min-h-full items-center justify-center bg-zinc-50">
-      <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
-        <h1 className="mb-1 text-2xl font-semibold text-zinc-900">Sign in</h1>
-        <p className="mb-6 text-sm text-zinc-500">Enter your credentials to continue.</p>
+    <div className="login-wrap">
+      <div className="login-card">
+        <div className="login-brand">
+          <span className="brand-mark" aria-hidden />
+          <span>LumenAI</span>
+        </div>
+        <h1>
+          Welcome <em>back</em>.
+        </h1>
+        <p className="sub">Sign in to your workspace to continue.</p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700">Email</label>
+        <form onSubmit={handleSubmit} className="login-form">
+          <div className="field">
+            <label htmlFor="email">Email</label>
             <input
+              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
-              className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
+              placeholder="you@company.com"
+              className="input"
             />
           </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700">Password</label>
+          <div className="field">
+            <label htmlFor="password">Password</label>
             <input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
-              className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
+              placeholder="••••••••"
+              className="input"
             />
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="form-err">{error}</p>}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
-          >
-            {loading ? 'Signing in…' : 'Sign in'}
+          <button type="submit" disabled={loading} className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '11px 16px' }}>
+            {loading ? 'Signing in…' : 'Sign in →'}
           </button>
         </form>
       </div>

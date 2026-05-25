@@ -13,55 +13,67 @@ export default function ChatWindow() {
 
   if (!activeConversationId) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-white">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-zinc-800">Welcome</h2>
-          <p className="mt-1 text-sm text-zinc-400">
-            Select a conversation or create a new one to get started.
-          </p>
+      <main className="chat-main">
+        <div className="chat-center-state">
+          <div className="inner">
+            <span className="eyebrow">welcome</span>
+            <h2>Ask <em>anything</em>.</h2>
+            <p>Select a conversation from the left, or start a new one to begin.</p>
+          </div>
         </div>
-      </div>
+      </main>
     );
   }
 
   const isPaused = activeConversation?.status === 'PAUSED';
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-white">
-      <header className="flex flex-shrink-0 items-center justify-between gap-4 border-b border-zinc-100 px-6 py-4">
-        <div className="min-w-0">
-          <h1 className="truncate text-base font-semibold text-zinc-900">
-            {activeConversation?.title ?? 'Chat'}
-          </h1>
-          {isPaused && <p className="text-xs text-zinc-400">This conversation is paused.</p>}
+    <main className="chat-main">
+      <header className="chat-header">
+        <div style={{ minWidth: 0 }}>
+          <div className="eyebrow" style={{ marginBottom: 4 }}>
+            session · <span className="mono" style={{ textTransform: 'none' }}>{activeConversationId.slice(0, 12)}</span>
+          </div>
+          <h1 className="chat-title">{activeConversation?.title ?? 'Chat'}</h1>
+          {isPaused && <p className="chat-subtitle">This conversation is paused.</p>}
         </div>
-        {activeConversation && (
-          <button
-            onClick={() =>
-              isPaused
-                ? resumeConversation(activeConversation.id)
-                : pauseConversation(activeConversation.id)
-            }
-            disabled={state.isStreaming}
-            className="flex-shrink-0 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isPaused ? 'Resume' : 'Pause'}
-          </button>
-        )}
+        <div className="chat-header-r">
+          {isPaused ? (
+            <span className="pill warn">paused</span>
+          ) : state.isStreaming ? (
+            <span className="pill warn">streaming</span>
+          ) : (
+            <span className="pill dot">idle</span>
+          )}
+          {activeConversation && (
+            <button
+              type="button"
+              onClick={() =>
+                isPaused
+                  ? resumeConversation(activeConversation.id)
+                  : pauseConversation(activeConversation.id)
+              }
+              disabled={state.isStreaming}
+              className="btn btn-ghost btn-sm"
+            >
+              {isPaused ? 'Resume' : 'Pause'}
+            </button>
+          )}
+        </div>
       </header>
 
-      {error && (
-        <div className="mx-6 mt-3 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <div className="banner">{error}</div>}
 
       <MessageList conversationId={activeConversationId} />
 
-      <footer className="flex-shrink-0 border-t border-zinc-100 px-6 py-4">
-        {state.isStreaming && <CancelButton />}
+      <div className="chat-input-wrap">
+        {state.isStreaming && (
+          <div className="cancel-row">
+            <CancelButton />
+          </div>
+        )}
         <MessageInput />
-      </footer>
-    </div>
+      </div>
+    </main>
   );
 }

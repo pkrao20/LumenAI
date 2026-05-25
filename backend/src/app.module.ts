@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { UsersModule } from './users/users.module';
 import { IngestionModule } from './ingestion/ingestion.module';
 import { ConversationModule } from './conversation/conversation.module';
@@ -11,6 +12,7 @@ import { LlmModule } from './llm/llm.module';
 
 @Module({
   imports: [
+    EventEmitterModule.forRoot({ global: true }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     JwtModule.register({
       global: true,
