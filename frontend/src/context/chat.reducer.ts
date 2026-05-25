@@ -22,6 +22,7 @@ export type ChatAction =
   | { type: 'SET_MESSAGES'; payload: { conversationId: string; messages: Message[] } }
   | { type: 'ADD_MESSAGE'; payload: { conversationId: string; message: Message } }
   | { type: 'START_STREAMING'; payload: { conversationId: string; messageId: string } }
+  | { type: 'RESUME_STREAMING'; payload: { conversationId: string; messageId: string } }
   | { type: 'APPEND_CHUNK'; payload: { conversationId: string; messageId: string; text: string } }
   | { type: 'FINISH_STREAMING'; payload: { conversationId: string; messageId: string } }
   | { type: 'SET_LOADING_CONVERSATIONS'; payload: boolean }
@@ -96,6 +97,17 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       };
       return {
         ...withUpdatedMessages(state, conversationId, (msgs) => [...msgs, placeholder]),
+        isStreaming: true,
+        streamingMessageId: messageId,
+      };
+    }
+
+    case 'RESUME_STREAMING': {
+      const { conversationId, messageId } = action.payload;
+      return {
+        ...withUpdatedMessages(state, conversationId, (msgs) =>
+          msgs.map((m) => (m.id === messageId ? { ...m, isStreaming: true } : m))
+        ),
         isStreaming: true,
         streamingMessageId: messageId,
       };

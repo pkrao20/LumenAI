@@ -66,13 +66,74 @@ export class ConversationService {
     return this.updateConversation(conversation);
   }
 
-  async resumeConversation(id: string, userId: string): Promise<Conversation> {
+  async resumeStreamToResponse(id: string, userId: string, res: any): Promise<void> {
     const conversation = await this.findConversationById(id, userId);
     if (!conversation) throw new NotFoundException('Conversation not found');
 
+    const interruptedMsg = await this.messageRepository.findOne({
+      where: { conversationId: id, status: MessageStatus.INTERRUPTED },
+      order: { createdAt: 'DESC' },
+    });
+
     conversation.status = ConversationStatus.ACTIVE;
-    this.logger.log(`Resumed conversation ${id} for user ${userId}`);
-    return this.updateConversation(conversation);
+    await this.updateConversation(conversation);
+
+    if (!interruptedMsg) {
+      res.json({ resumed: true });
+      return;
+    }
+
+    const controller = new AbortController();
+    this.activeStreams.set(id, controller);
+
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    res.on('close', () => controller.abort());
+
+    const partialContent = interruptedMsg.content;
+    let continuation = '';
+    let interrupted = false;
+
+    try {
+      const history = await this.messageRepository.find({
+        where: { conversationId: id },
+        order: { createdAt: 'ASC' },
+      });
+
+      // Build history excluding the interrupted message, then append it as
+      // an assistant prefill so the LLM continues from exactly that point
+      const chatMessages: ChatMessage[] = history
+        .filter((m) => m.id !== interruptedMsg.id)
+        .map((m) => ({
+          role: m.role === MessageRole.USER ? ('user' as const) : ('assistant' as const),
+          content: m.content,
+        }));
+      chatMessages.push({ role: 'assistant', content: partialContent });
+
+      for await (const chunk of this.llmService.stream(chatMessages)) {
+        if (controller.signal.aborted) {
+          interrupted = true;
+          break;
+        }
+        continuation += chunk;
+        res.write(chunk);
+      }
+
+      interruptedMsg.content = partialContent + continuation;
+      interruptedMsg.status = interrupted ? MessageStatus.INTERRUPTED : MessageStatus.COMPLETED;
+    } catch (err) {
+      this.logger.error('Resume streaming error', err);
+      interruptedMsg.status = MessageStatus.FAILED;
+    } finally {
+      await this.messageRepository.save(interruptedMsg);
+      this.activeStreams.delete(id);
+      res.end();
+    }
   }
 
   async streamMessageToResponse(conversationId: string, text: string, userId: string, res: any): Promise<void> {

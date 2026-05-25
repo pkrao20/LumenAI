@@ -39,10 +39,6 @@ export function pauseConversation(id: string): Promise<Conversation> {
   return apiFetch<Conversation>(`/conversation/${id}/pause`, { method: 'PATCH' });
 }
 
-export function resumeConversation(id: string): Promise<Conversation> {
-  return apiFetch<Conversation>(`/conversation/${id}/resume`, { method: 'PATCH' });
-}
-
 export async function signIn(email: string, password: string): Promise<void> {
   const res = await fetch(`${BASE}/users/signin`, {
     method: 'POST',

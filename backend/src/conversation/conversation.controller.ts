@@ -56,7 +56,7 @@ export class ConversationController {
 
   @Patch(':id/resume')
   @UseGuards(JwtAuthGuard)
-  resumeConversation(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
-    return this.conversationService.resumeConversation(id, user.sub);
+  resumeConversation(@Param('id') id: string, @CurrentUser() user: JwtPayload, @Res() res: any) {
+    return this.conversationService.resumeStreamToResponse(id, user.sub, res);
   }
 }

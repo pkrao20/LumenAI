@@ -15,10 +15,9 @@ import {
   getConversations,
   getMessages,
   pauseConversation as apiPause,
-  resumeConversation as apiResume,
   signIn as apiSignIn,
 } from '@/services/conversation.service';
-import { streamMessage } from '@/services/chat.service';
+import { streamMessage, streamResume } from '@/services/chat.service';
 import type { Conversation } from '@/types/conversation';
 import type { Message } from '@/types/message';
 
@@ -143,8 +142,18 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const cancelStreaming = useCallback(() => {
+  const cancelStreaming = useCallback(async () => {
     abortRef.current?.abort();
+
+    const { activeConversationId } = stateRef.current;
+    if (!activeConversationId) return;
+
+    try {
+      const updated = await apiPause(activeConversationId);
+      dispatch({ type: 'UPDATE_CONVERSATION', payload: updated });
+    } catch {
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to pause conversation' });
+    }
   }, []);
 
   const pauseConversation = useCallback(async (id: string) => {
@@ -157,11 +166,51 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const resumeConversation = useCallback(async (id: string) => {
+    const messages = stateRef.current.messagesByConversation[id] ?? [];
+    const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
+    const messageId = lastAssistant?.id;
+
+    const conv = stateRef.current.conversations.find((c) => c.id === id);
+    if (conv) {
+      dispatch({ type: 'UPDATE_CONVERSATION', payload: { ...conv, status: 'ACTIVE' } });
+    }
+
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
+
     try {
-      const updated = await apiResume(id);
-      dispatch({ type: 'UPDATE_CONVERSATION', payload: updated });
-    } catch {
-      dispatch({ type: 'SET_ERROR', payload: 'Failed to resume conversation' });
+      await streamResume(
+        id,
+        () => {
+          if (messageId) {
+            dispatch({
+              type: 'RESUME_STREAMING',
+              payload: { conversationId: id, messageId },
+            });
+          }
+        },
+        (text) => {
+          if (messageId) {
+            dispatch({
+              type: 'APPEND_CHUNK',
+              payload: { conversationId: id, messageId, text },
+            });
+          }
+        },
+        abortRef.current.signal,
+      );
+    } catch (err: unknown) {
+      if ((err as Error).name !== 'AbortError') {
+        dispatch({ type: 'SET_ERROR', payload: 'Failed to resume conversation' });
+      }
+    } finally {
+      if (messageId && stateRef.current.streamingMessageId === messageId) {
+        dispatch({
+          type: 'FINISH_STREAMING',
+          payload: { conversationId: id, messageId },
+        });
+      }
+      abortRef.current = null;
     }
   }, []);
 
