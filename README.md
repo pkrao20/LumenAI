@@ -6,6 +6,8 @@ A full-stack AI chat application that runs a local language model with no extern
 
 **Demo:** [Watch demo video](https://drive.google.com/file/d/13S_wKzcNKfFrgllzc8_WnyvMFkPXWxrI/view?usp=sharing)
 
+![Demo](assets/ezgif-2a6f28407cf77292.gif)
+
 ---
 
 > [!WARNING]
